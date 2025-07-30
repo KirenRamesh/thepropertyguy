@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Property Guy - Real Estate & Renovation Specialist</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        /* Base Styles */
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0a0a0a;
+            color: #e5e5e5;
+            overflow-x: hidden;
+            cursor: none;
+        }
+        body.loading, body.menu-open { overflow: hidden; }
+
+        /* Custom Cursor */
+        #cursor-dot {
+            width: 8px; height: 8px; background-color: #e5e5e5; border-radius: 50%;
+            position: fixed; top: 0; left: 0; transform: translate(-50%, -50%);
+            pointer-events: none; z-index: 9999;
+            transition: transform 0.2s ease-out, background-color 0.2s ease-out;
+        }
+        #cursor-dot.hovered {
+            transform: translate(-50%, -50%) scale(5);
+            background-color: rgba(229, 229, 229, 0.5);
+        }
+        
+        /* Preloader */
+        #preloader {
+            position: fixed; inset: 0; background-color: #0a0a0a;
+            display: flex; justify-content: center; align-items: center;
+            z-index: 200; transition: opacity 0.8s ease-in-out;
+        }
+        #preloader.loaded { opacity: 0; }
+        #preloader-content { text-align: center; }
+        #preloader-counter {
+            font-family: monospace; font-size: 1.5rem; color: #e5e5e5;
+        }
+        #preloader-text-logo {
+            font-weight: 900; font-size: 1.5rem; letter-spacing: 0.2em;
+            color: #e5e5e5; opacity: 0; transition: opacity 0.5s step-end;
+        }
+        
+        /* Header */
+        .site-header {
+            position: fixed; top: 0; left: 0; width: 100%; padding: 1.5rem 2rem;
+            display: flex; justify-content: space-between; align-items: center; z-index: 100;
+        }
+        .header-logo, .header-contact { font-weight: 700; font-size: 0.9rem; letter-spacing: 0.05em; color: #e5e5e5; }
+
+        /* Menu Button & Overlay */
+        .menu-button {
+            width: 30px; height: 22px; display: flex; flex-direction: column;
+            justify-content: space-between; cursor: none; z-index: 150; position: relative;
+        }
+        .menu-button .bar {
+            width: 100%; height: 3px; background-color: #e5e5e5;
+            transition: all 0.3s ease-in-out; transform-origin: center;
+        }
+        .menu-button.open .bar:nth-child(1) { transform: translateY(9.5px) rotate(45deg); }
+        .menu-button.open .bar:nth-child(2) { opacity: 0; }
+        .menu-button.open .bar:nth-child(3) { transform: translateY(-9.5px) rotate(-45deg); }
+
+        #menu-overlay {
+            position: fixed; inset: 0; background-color: rgba(228, 228, 228, 0.9);
+            -webkit-backdrop-filter: blur(5px);
+            backdrop-filter: blur(5px);
+            z-index: 140;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            opacity: 0; visibility: hidden; transition: opacity 0.4s ease, visibility 0.4s ease;
+        }
+        #menu-overlay.open { opacity: 1; visibility: visible; }
+        .menu-nav a {
+            color: #000000; font-size: clamp(2rem, 5vw, 2.5rem); font-weight: 700;
+            margin: 1rem 0; display: block; text-align: center; transition: color 0.3s ease;
+        }
+        .menu-nav a:hover { color: #939393; }
+
+        /* General Section Styling */
+        .content-section { padding: 6rem 2rem; }
+        .section-title {
+            font-size: clamp(2.5rem, 6vw, 4rem); font-weight: 900;
+            line-height: 1.1; letter-spacing: -0.03em;
+        }
+
+        /* Hero Section */
+        .hero-section {
+            height: 100vh; 
+            display: flex; 
+            align-items: center;
+            position: relative; 
+            overflow: hidden;
+        }
+        .hero-title {
+            font-size: clamp(3rem, 12vw, 9rem); font-weight: 900;
+            line-height: 0.8; letter-spacing: -0.03em; z-index: 2;
+            text-align: center;
+        }
+        
+        /* Animated Lines */
+        .lines-container {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 1; pointer-events: none;
+        }
+        .line {
+            position: absolute; width: 5px; height: 100%;
+            background: linear-gradient(to bottom, rgba(229,229,229,0) 0%, rgba(255, 255, 255, 0.2) 50%, rgba(229,229,229,0) 100%);
+            animation: move-line 0.1s linear infinite;
+        }
+        .line:nth-child(1) { left: 10%; animation-duration: 15s; }
+        .line:nth-child(2) { left: 20%; animation-duration: 25s; animation-delay: -5s; }
+        .line:nth-child(3) { left: 50%; animation-duration: 30s; }
+        .line:nth-child(4) { left: 80%; animation-duration: 20s; animation-delay: -10s; }
+        .line:nth-child(5) { left: 90%; animation-duration: 18s; }
+
+        @keyframes move-line {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100%); }
+        }
+        
+        /* About Section */
+        .image-reveal-wrapper {
+            overflow: hidden; border-radius: 0.5rem;
+        }
+        .image-reveal-wrapper img {
+            width: 100%; height: 100%; object-fit: cover; filter: grayscale(100%);
+            transform: scale(1.1); transition: transform 3.2s cubic-bezier(0.2, 1, 0.3, 1), clip-path 3.2s cubic-bezier(0.2, 1, 0.3, 1);
+            clip-path: inset(0 0 100% 0);
+        }
+        .image-reveal-wrapper.visible img {
+            transform: scale(1); clip-path: inset(0 0 0 0);
+        }
+
+        /* Services Grid */
+        .service-grid-item {
+            border-bottom: 1px solid #3a3a3a; padding: 2.5rem 0; display: flex;
+            justify-content: space-between; align-items: center; transition: background-color 0.3s ease;
+        }
+        .service-grid-item:hover { background-color: #1c1c1c; }
+        .service-grid-item h3 { font-size: clamp(1.5rem, 4vw, 2.5rem); font-weight: 700; }
+        .service-grid-item span { color: #a3a3a3; font-size: 1rem; }
+
+        /* Social Media Canvas Section */
+        #social {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 80vh; 
+            padding: 6rem 2rem;
+        }
+        #particle-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            background-color: #0a0a0a;
+            border-radius: 1rem;
+        }
+        .social-content {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+        }
+        .social-links {
+            margin-top: 3rem;
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .social-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem 2rem;
+            border: 1px solid #3a3a3a;
+            color: #a3a3a3;
+            border-radius: 9999px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        .social-link:hover {
+            background-color: #e5e5e5;
+            color: #0a0a0a;
+            border-color: #e5e5e5;
+        }
+        .social-link svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* CTA Section */
+        .cta-link {
+            display: inline-block; border: 1px solid #e5e5e5; padding: 1.25rem 3rem;
+            margin-top: 2rem; font-weight: 700; transition: all 0.3s ease; font-size: 1.25rem;
+        }
+        .cta-link:hover { background-color: #e5e5e5; color: #0a0a0a; }
+
+        /* Reveal Animation for Text */
+        .reveal {
+            opacity: 0; transform: translateY(50px);
+            transition: opacity 1s ease, transform 1s ease;
+        }
+        .reveal.visible { opacity: 1; transform: translateY(0); }
+    </style>
+</head>
+<body class="loading">
+    <div id="cursor-dot"></div>
+    <div id="preloader">
+        <div id="preloader-content">
+            <div id="preloader-counter">0%</div>
+            <div id="preloader-text-logo">THE PROPERTY GUY</div>
+        </div>
+    </div>
+
+    <div id="menu-overlay">
+        <nav class="menu-nav">
+            <a href="#top">Home</a>
+            <a href="#about">About</a>
+            <a href="#services">Services</a>
+            <a href="#social">Social</a>
+            <a href="#contact">Contact</a>
+        </nav>
+    </div>
+
+    <header class="site-header">
+        <a href="#top" class="header-logo">HOME</a>     
+        <div class="flex items-center gap-4 md:gap-6">
+            <a href="https://wa.me/601175566576" target="_blank" class="header-contact">+6011-7556 6576</a>
+            <div id="menu-button" class="menu-button">
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+            </div>
+        </div>
+    </header>
+
+    <main class="opacity-0 transition-opacity duration-500">
+        <section id="top" class="hero-section">
+            <div class="lines-container">
+                <div class="line"></div><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"></div>
+            </div>
+            <div class="container mx-auto px-8 w-full">
+                <h1 class="hero-title reveal">The<br>Property<br>guy •</h1>
+            </div>
+        </section>
+
+        <section id="about" class="content-section container mx-auto">
+            <div class="grid md:grid-cols-2 gap-16 items-center">
+                <div class="reveal">
+                    <h2 class="section-title mb-8">A Singular Focus on Quality.</h2>
+                    <p class="text-lg text-gray-400 leading-relaxed">
+                        As "The Property Guy," I merge the worlds of real estate and construction into one seamless service. From acquiring the perfect plot to handing over the keys to a finished home, I am your single point of contact for projects throughout Southern Malaysia.
+                    </p>
+                </div>
+                <div class="image-reveal-wrapper">
+                    <img src="https://images.unsplash.com/photo-1519643381401-22c77e60520e?q=80&w=2073&auto=format&fit=crop" alt="Stylish modern interior">
+                </div>
+            </div>
+        </section>
+
+        <section id="services" class="content-section container mx-auto">
+            <h2 class="section-title text-center mb-16 reveal">What 'The Guy' Offers?</h2>
+            <div class="max-w-5xl mx-auto reveal">
+                <a href="https://wa.me/601175566576" target="_blank" class="service-grid-item"><h4>Property Buy-Sell</h4><span> →</span></a>
+                <a href="https://wa.me/601175566576" target="_blank" class="service-grid-item"><h4>New Construction</h4><span> →</span></a>
+                <a href="https://wa.me/601175566576" target="_blank" class="service-grid-item"><h4>Renovation & Remodeling</h4><span> →</span></a>
+                <a href="https://wa.me/601175566576" target="_blank" class="service-grid-item"><h4>Design & Consultation</h4><span> →</span></a>
+            </div>
+        </section>
+
+        <section id="social" class="content-section container mx-auto">
+            <canvas id="particle-canvas"></canvas>
+            <div class="social-content">
+                <h2 class="section-title reveal">Follow the Blueprint.</h2>
+                <div class="social-links reveal">
+                    <a href="https://www.facebook.com/profile.php?id=61578209384958&__cft__[0]=AZVJ6_ocIyxbhcyOLr39dbdpFxY-NTETHNCl4qQAxfx5FgjoofAjrXWqrEkVFa3fD3rf66mh1OLtXoTZgN7SNgrOGy-lgNE7-VNHG5JNWIcfro4LCk545n_RMJRQKSikVAIFG-oGmB2IaJJPizk4by2ksu-9CNTDqApFUzw0K0IJ8A&__tn__=R]-R" target="_blank" class="social-link">
+                        <svg fill="currentColor" viewBox="0 0 24 24"><path d="M14 13.5h2.5l1-4H14v-2c0-1.03 0.01-1.5 1.5-1.5H18V2h-3.5c-3.86 0-5 2.16-5 5v2H6v4h3.5v8H14v-8Z"/></svg>
+                        <span>Facebook</span>
+                    </a>
+                    <a href="https://www.instagram.com/thepropertyguy.malaysia?igsh=djl1czI4dmVvaDJ2&utm_source=qr&fbclid=IwY2xjawL2lI1leHRuA2FlbQIxMABicmlkETF3eUh0cTdGRjBxTXk3NGtkAR5u-a8hVSzr53WmvLhyVjpO1L7fDt2PYl4P1CsuCw_czIjbghR4VcdbjY_m-Q_aem_0Xh2zSs2VxGbjv2v4lw6IQ" target="_blank" class="social-link">
+                        <svg fill="currentColor" viewBox="0 0 24 24"><path d="M12 2c2.717 0 3.056.01 4.122.06 1.065.05 1.79.217 2.428.465.66.254 1.217.598 1.772 1.153a4.928 4.928 0 0 1 1.153 1.772c.247.637.415 1.363.465 2.428.047 1.066.06 1.405.06 4.122s-.013 3.056-.06 4.122c-.05 1.065-.218 1.79-.465 2.428a4.883 4.883 0 0 1-1.153 1.772 4.928 4.928 0 0 1-1.772 1.153c-.637.247-1.363.415-2.428.465-1.066.047-1.405.06-4.122.06s-3.056-.01-4.122-.06c-1.065-.05-1.79-.218-2.428-.465a4.89 4.89 0 0 1-1.772-1.153 4.928 4.928 0 0 1-1.153-1.772c-.248-.637-.415-1.363-.465-2.428C2.013 15.056 2 14.717 2 12s.01-3.056.06-4.122c.05-1.066.217-1.79.465-2.428a4.88 4.88 0 0 1 1.153-1.772A4.928 4.928 0 0 1 5.45 2.525c.638-.248 1.362-.415 2.428-.465C8.944 2.013 9.283 2 12 2Zm0 5a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm6.5-3a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z"/></svg>
+                        <span>Instagram</span>
+                    </a>
+                    <a href="https://www.tiktok.com/@thepropertyguy.malaysia" target="_blank" class="social-link">
+                         <svg fill="currentColor" viewBox="0 0 24 24"><path d="M16.6 5.82s.51.5 0 0A4.278 4.278 0 0 1 15.54 3h-3.09v12.4a2.592 2.592 0 0 1-2.59 2.59H9.49a2.592 2.592 0 0 1-2.59-2.59V3H4V1h5.5v12.4a2.592 2.592 0 0 1-2.59 2.59h.03a2.592 2.592 0 0 1 2.56-2.59V6.35a4.278 4.278 0 0 1 4.28-4.28H18V1h-2.9Z"/></svg>
+                        <span>TikTok</span>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <section id="contact" class="content-section text-center border-t border-[#3a3a3a]">
+            <h2 class="section-title reveal">Need help finding property?</h2>
+            <a href="https://wa.me/601175566576" target="_blank" class="cta-link reveal">LET'S TALK</a>
+        </section>
+    </main>
+
+    <footer class="text-center p-8 bg-black">
+        <p class="text-sm font-bold text-white">THE PROPERTY GUY</p>
+        <p class="text-xs text-gray-500 mt-2">&copy; <span id="year"></span> All Rights Reserved.</p>
+        <p class="text-xs text-gray-600 mt-1">Associated with APG Marketing & Management SDN BHD</p>
+    </footer>
+
+    <script>
+        // --- PRELOADER ---
+        const preloader = document.getElementById('preloader');
+        const preloaderCounter = document.getElementById('preloader-counter');
+        const preloaderTextLogo = document.getElementById('preloader-text-logo');
+        const mainContent = document.querySelector('main');
+        let count = 0;
+        const interval = setInterval(() => {
+            if (count >= 100) {
+                clearInterval(interval);
+                preloaderCounter.style.display = 'none';
+                preloaderTextLogo.style.opacity = '1';
+                setTimeout(() => {
+                    preloader.classList.add('loaded');
+                    document.body.classList.remove('loading');
+                    mainContent.style.opacity = '1';
+                    setTimeout(() => preloader.style.display = 'none', 1000);
+                }, 1000);
+            } else {
+                count++;
+                preloaderCounter.textContent = `${count}%`;
+            }
+        }, 25);
+
+        // --- CUSTOM CURSOR ---
+        const cursorDot = document.getElementById('cursor-dot');
+        const hoverables = document.querySelectorAll('a, .menu-button');
+        window.addEventListener('mousemove', (e) => {
+            cursorDot.style.left = `${e.clientX}px`;
+            cursorDot.style.top = `${e.clientY}px`;
+        });
+        hoverables.forEach(el => {
+            el.addEventListener('mouseenter', () => cursorDot.classList.add('hovered'));
+            el.addEventListener('mouseleave', () => cursorDot.classList.remove('hovered'));
+        });
+
+        // --- MENU TOGGLE SCRIPT ---
+        const menuButton = document.getElementById('menu-button');
+        const menuOverlay = document.getElementById('menu-overlay');
+        const menuLinks = document.querySelectorAll('.menu-nav a');
+        const toggleMenu = () => {
+            menuButton.classList.toggle('open');
+            menuOverlay.classList.toggle('open');
+            document.body.classList.toggle('menu-open');
+        };
+        menuButton.addEventListener('click', toggleMenu);
+        menuLinks.forEach(link => link.addEventListener('click', toggleMenu));
+        menuOverlay.addEventListener('click', (e) => (e.target === menuOverlay) && toggleMenu());
+
+        // --- SCROLL ANIMATIONS ---
+        const revealObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) entry.target.classList.add('visible');
+            });
+        }, { threshold: 0.1 });
+        document.querySelectorAll('.reveal, .image-reveal-wrapper').forEach(el => revealObserver.observe(el));
+
+        // --- FOOTER YEAR ---
+        document.getElementById('year').textContent = new Date().getFullYear();
+
+        // --- PARTICLE CANVAS SCRIPT ---
+        const canvas = document.getElementById('particle-canvas');
+        const ctx = canvas.getContext('2d');
+        let particlesArray;
+
+        const mouse = {
+            x: null,
+            y: null,
+            radius: 120
+        };
+
+        window.addEventListener('mousemove', (event) => {
+            const rect = canvas.getBoundingClientRect();
+            mouse.x = event.clientX - rect.left;
+            mouse.y = event.clientY - rect.top;
+        });
+        
+        window.addEventListener('mouseout', () => {
+            mouse.x = null;
+            mouse.y = null;
+        });
+
+        class Particle {
+            constructor(x, y, directionX, directionY, size, color) {
+                this.x = x;
+                this.y = y;
+                this.directionX = directionX;
+                this.directionY = directionY;
+                this.size = size;
+                this.color = color;
+                this.baseX = this.x;
+                this.baseY = this.y;
+                this.density = (Math.random() * 30) + 1;
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2, false);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+            }
+            update() {
+                let dx = mouse.x - this.x;
+                let dy = mouse.y - this.y;
+                let distance = Math.sqrt(dx * dx + dy * dy);
+                
+                let forceDirectionX = dx / distance;
+                let forceDirectionY = dy / distance;
+                
+                let maxDistance = mouse.radius;
+                let force = (maxDistance - distance) / maxDistance;
+                
+                let directionX = forceDirectionX * force * this.density;
+                let directionY = forceDirectionY * force * this.density;
+
+                if (distance < mouse.radius) {
+                    this.x -= directionX;
+                    this.y -= directionY;
+                } else {
+                    if (this.x !== this.baseX) {
+                        let dx = this.x - this.baseX;
+                        this.x -= dx / 10;
+                    }
+                    if (this.y !== this.baseY) {
+                        let dy = this.y - this.baseY;
+                        this.y -= dy / 10;
+                    }
+                }
+                this.draw();
+            }
+        }
+
+        function init() {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            particlesArray = [];
+            let numberOfParticles = (canvas.width * canvas.height) / 9000;
+            for (let i = 0; i < numberOfParticles; i++) {
+                let size = (Math.random() * 2) + 1;
+                let x = (Math.random() * ((canvas.width - size * 2) - (size * 2)) + size * 2);
+                let y = (Math.random() * ((canvas.height - size * 2) - (size * 2)) + size * 2);
+                let directionX = (Math.random() * .2) - .1;
+                let directionY = (Math.random() * .2) - .1;
+                let color = 'rgba(229, 229, 229, 0.5)';
+                particlesArray.push(new Particle(x, y, directionX, directionY, size, color));
+            }
+        }
+
+        function connect() {
+            let opacityValue = 1;
+            for (let a = 0; a < particlesArray.length; a++) {
+                for (let b = a; b < particlesArray.length; b++) {
+                    let distance = ((particlesArray[a].x - particlesArray[b].x) * (particlesArray[a].x - particlesArray[b].x)) +
+                                 ((particlesArray[a].y - particlesArray[b].y) * (particlesArray[a].y - particlesArray[b].y));
+                    if (distance < (canvas.width / 7) * (canvas.height / 7)) {
+                        opacityValue = 1 - (distance / 20000);
+                        ctx.strokeStyle = `rgba(229, 229, 229, ${opacityValue})`;
+                        ctx.lineWidth = 0.5;
+                        ctx.beginPath();
+                        ctx.moveTo(particlesArray[a].x, particlesArray[a].y);
+                        ctx.lineTo(particlesArray[b].x, particlesArray[b].y);
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let i = 0; i < particlesArray.length; i++) {
+                particlesArray[i].update();
+            }
+            connect();
+        }
+        
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                init();
+            }, 250);
+        });
+
+        init();
+        animate();
+
+    </script>
+
+</body>
+</html>
